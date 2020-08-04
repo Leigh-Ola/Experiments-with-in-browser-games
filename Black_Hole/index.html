@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Run Test</title>
+	<style type="text/css">
+	body{
+		background:#c0c0c0; margin:0;
+		font-size:16px;
+	}
+
+	.canvasBox{
+		border:2px solid #1F263B;
+		background-color:black;
+	}
+	
+	#cover{
+		display:none; position:fixed; width:100%; height:100%; top:0px; bottom:0px; background:rgba(250, 250, 250, 0.5);
+	}
+	#cover.show{ display:flex; }
+	#popup{
+		position:relative; display:block; width:400px; max-width:calc(100% - 20px); height:80px; padding:5px 0px; margin:auto; background:#1f263b; border:2px solid #000; border-radius:3px; box-shadow:0px 0px 15px #000;
+	}
+	#popup span{
+		display:block; width:100%; padding:7px 4px; box-sizing:border-box; min-width:100%; height:calc(100% - 40px); font-family:Serif; color:#fff;
+	}
+	#popup nav{
+		display:flex; width:100%; height:40px; max-height:40px; margin:0 0 10px 0; font-family:"Times New Roman"; justify-content:space-around; color:#eee;
+	}
+	#popup nav button{
+		height:100%; background:rgba(250, 250, 250, 0.3); font-size:1.1em; max-width:47%; flex-grow:1; outline:none; border:none;
+	}
+	#popup nav button:first-of-type{
+		background:rgba(250, 192, 186, 0.18);
+	}
+	#popup nav button:active{
+		background:transparent; color:#fff; outline:none;
+	}
+	#popup button:hover{ outline:none; }
+	
+	
+	.buttons{
+		height:34px; width:100%; display:flex; justify-content:space-between;
+	}
+	.buttons div{
+		flex-grow:1; outline:none; max-width:47%; background:#1F263B; color:#fff; border:1px solid #666; border-radius:4px; text-align:center; line-height:28px;
+	}
+	.buttons div:active{
+		background:#bbb;
+	}
+	.buttons div:hover, .buttons div:active{ outline:none; }
+
+
+	.options{
+		display:flex; height:35px; width:100%; margin-top:1px; overflow-x:scroll; overflow-y:hidden; white-space:nowrap; padding:1px; box-sizing:border-box; line-height:30px; background:#1F263B;
+	}
+	.options::-webkit-scrollbar{ display:none; }
+	.options > *{
+		display:inline-block; height:100%; min-width:25%; margin:0px 5px; background:#fff; padding:0px 4px; border-radius:2px; flex-shrink:0;
+	}
+	</style>
+</head>
+<body>
+
+	<aside id="cover" class="sho">
+		<div id="popup">
+			<span>Wanna see something cool?</span>
+			<nav>
+				<button>Nah</button>
+				<button>Sure</button>
+			</nav>
+		</div>
+	</aside>
+	
+	<div class="buttons">
+		<div id="add">Add asteroid</div>
+		<div id="remove">Remove Asteroid</div>
+	</div>
+	
+	<div class="options">
+		<span><input type="checkbox" name="blackhole" id="blackhole" checked><label for="blackhole">Black Hole</label></span>
+		<span><input type="checkbox" name="darkMatter" id="darkMatter" checked><label for="darkMatter">Dark Matter</label></span>
+		<span><input type="checkbox" name="rotation" id="rotation" checked><label for="rotation">Rotation</label></span>
+		<span><input type="checkbox" name="boundary" id="boundary"><label for="boundary">Boundary</label></span>
+		<span><input type="checkbox" name="interact" id="interact"><label for="interact">Planetary Interaction</label></span>
+	</div>
+
+</body>
+<script type="text/javascript" src="../../../PlugIns/PrefixFree/fullPrefixFree.js"></script>
+<script type="text/javascript" src="../../../PlugIns/Lazy/lazy.min.js"></script>
+<script type="text/javascript" src="../../../PlugIns/JQuery/jquery3.2.1.min.js"></script>
+<script type="text/javascript" src="../../../PlugIns/Pixi/pixi.js"></script>
+
+<script type="text/javascript" src="index.js"></script>
+</html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Run Test</title>
+	<style type="text/css">
+	body{ background:#c0c0c0; margin:2px;}
+
+	.canvasBox{
+		border:2px solid red;
+	}
+	
+	.buttons{
+		height:34px; width:100%; display:flex; justify-content:space-between;
+	}
+	.buttons div{
+		flex-grow:1; outline:none; max-width:47%; background:#666; color:#fff; border:2px ridge red; text-align:center; line-height:28px;
+	}
+	.buttons div:active{
+		background:#bbb;
+	}
+	.buttons div:hover, .buttons div:active{ outline:none; }
+
+	.options{
+		display:flex; height:35px; width:100%; margin-top:1px; overflow-x:scroll; overflow-y:hidden; white-space:nowrap; padding:1px; box-sizing:border-box; line-height:30px; background:red;
+	}
+	.options::-webkit-scrollbar{ display:none; }
+	.options > *{
+		display:inline-block; height:100%; min-width:20px; margin:0px 5px; background:#fff; padding:0px 4px; border-radius:2px;
+	}
+	</style>
+</head>
+<body>
+	
+	<div class="buttons">
+		<div id="up">Speed Up</div>
+		<div id="down">Slow Down</div>
+	</div>
+	
+	<div class="options">
+		<span><input type="checkbox" name="gravity" id="gravity" checked><label for="gravity">Gravity</label></span>
+		<span><input type="checkbox" name="friction" id="friction" checked><label for="friction">Friction</label></span>
+	</div>
+
+</body>
+<script type="text/javascript" src="../../../PlugIns/PrefixFree/fullPrefixFree.js"></script>
+<script type="text/javascript" src="../../../PlugIns/Lazy/lazy.min.js"></script>
+<script type="text/javascript" src="../../../PlugIns/JQuery/jquery3.2.1.min.js"></script>
+<script type="text/javascript" src="../../../PlugIns/Pixi/pixi.js"></script>
+<script type="text/javascript">
+
+console.log(Lazy(window).keys());
+
+/* Track game data and state */
+var game = (function(){
+	var anim;// stores the current value of requestAnimationFrame
+	
+	var exposed_constructor = function(){
+		this.state = function(){}// must be a function. The function will be executed at every animation frame (usually 60 fps).
+		this._sprites = {};//for storing a named list of sprites
+		this.storage = {};//for storing a named list of any game data
+	}
+	
+	exposed_constructor.prototype = {
+		begin: function(app){
+			var renderer = app.renderer, stage = app.stage;
+			var self = this;
+			cancelAnimationFrame(anim);
+			
+			function renderFunc(){
+				self.state();
+				renderer.render(stage);
+				anim = requestAnimationFrame(renderFunc);
+			}
+			renderFunc();
+		},// when called, will trigger the periodic execution of game.state. Requires two arguments.
+		
+		clearState : function(){
+			this.state = function(){};
+		},// resets game.state to an empty function
+
+		addSprite : function(obj){
+			for(var key in obj){
+				this._sprites[key] = obj[key];
+			}
+		},
+		removeSprite : function(key){
+			delete this._sprites[key];
+		},
+		getSprite : function(key){
+			if(!key){
+				return this._sprites;
+			}
+			return this._sprites[key];
+		}
+	}
+	
+	return (new exposed_constructor());
+})();
+
+
+/* Check & fix collision with borders */
+function contain(el, box){
+	var results = (function(){
+		var arr = [], self = this;
+		this.length = 0;
+		this.toString = function(){
+			return arr.toString();
+		}
+		this.has = function(x){
+			return (arr.indexOf(x) > -1);
+		}
+		this.push = function(x){
+			arr.push(x);
+			this.length++;
+		}
+		return this;
+	})();
+	if(el.x < box.x){
+		results.push("left");
+		el.x = box.x;
+	}
+	if(el.y < box.y){
+		results.push("top");
+		el.y = box.y;
+	}
+	if(el.x + el.width > box.width){
+		results.push("right");
+		el.x = (box.width - el.width);
+	}
+	if(el.y + el.height > box.height){
+		results.push("bottom");
+		el.y = (box.height - el.height);
+	}
+	if(!results.length){
+		return undefined;
+	}
+	return results;
+}
+
+
+/* Initialize and begin game */
+(function(){
+
+	var app = new PIXI.Application({ 
+		width: 312,     // default: 800
+		height: 370,   // default: 600
+		antialias: true,// default: false
+		transparent: false,// default: false
+		resolution: 1 // default: 1
+	});
+	$("body").prepend(app.view);
+	app.view.classList.add("canvasBox");
+//	app.renderer.backgroundColor = "0xFF0000";
+	
+	
+	//Use Pixi’s built-in `loader` object to load an image 
+	PIXI.loader 
+		.add("../img/ball.png")
+	.load(setup);
+	//This `setup` function will run when the image has loaded
+
+	function setup() {
+		//Create the sprite from the texture
+		var img = new PIXI.Sprite(PIXI.loader.resources["../img/ball.png"].texture);
+		
+		//for position 
+//		img.width = 312;//canvas width
+//		img.height =370;//canvas height
+	
+		img.position.set(156, 340);
+		img.scale.set(0.06, 0.06);
+		
+		//for control
+		img.vx = 0;
+		img.vy = 0;
+		img.accelerationX = 0;
+		img.accelerationY = 0;
+		img.frictionX = 0.98;
+		img.frictionY = 0.98;
+		img.drag = 0.98;
+		img.speed = 0.15;
+		
+		//for rotation
+		img.anchor.x = 0.5;//x anchor
+		img.anchor.y = 0.5;//y anchor
+		img.revolution = 0;
+		img.rotation = 1.57;//rotation value, where 1 represents the length of the radius. 3.14 represents 180 degrees
+		
+		//Add the sprite to the stage
+		app.stage.addChild(img);
+		
+		
+		var stats = new PIXI.Text("Velocity : 0", {font: "16px", fill: "red", wordWrap : true, wordWrapWidth : 140});
+ 		stats.x = 2;
+ 		stats.y = 2;
+ 		app.stage.addChild(stats);
+		
+		game.addSprite({"ball" : img});
+		game.storage.gravity = 0.1;
+		
+		//Render the stage at intervals
+		game.begin(app);
+
+		game.state = function(){
+			var collision = contain(img, { x : 0, y : 0, height : app.renderer.height, width : app.renderer.width });
+
+			img.vx += img.accelerationX;
+			img.vy += img.accelerationY;
+			
+			img.vx *= img.frictionX;
+			img.vy *= img.frictionY;
+
+			img.vy += game.storage.gravity;//gravity
+			
+			if(collision){
+				if(collision.has("bottom") || collision.has("top")){
+					if(!((img.vy > 0 && img.vy < 0.5) || (img.vy < 0 && img.vy > -0.5))){
+						img.vy = -(img.vy * 0.7);
+						var newRev = Math.abs(Math.floor(img.vy * 50));
+						if(img.revolution / 1.25 > newRev){
+ 							newRev = (img.revolution / 1.25);
+						}
+						img.revolution = newRev;
+					}else{
+						img.vy = 0;
+					}
+				}
+			}
+			
+			if(img.revolution > 0 && img.vy != 0){
+				img.rotation += (img.revolution / 200);
+				img.revolution -= 0.1;
+			}
+			stats.text = "Velocity : "+Math.abs(img.vy.toFixed(4));
+			
+			img.x += img.vx;
+			img.y += img.vy;
+		}
+	}
+		
+	$("#up").click(function(){
+		var ball =game.getSprite("ball");
+		ball.accelerationY = -ball.speed;
+	});
+	$("#down").click(function(){
+		var ball =game.getSprite("ball");
+		ball.accelerationY = 0;
+	});
+	$("#gravity").click(function(){
+		if($(this).prop("checked") == true){
+			game.storage.gravity = 0.1;
+		}else{
+			game.storage.gravity = 0;
+		}
+	});
+	$("#friction").click(function(){
+		var ball =game.getSprite("ball");
+		if($(this).prop("checked") == true){
+			ball.frictionX = 0.98;
+			ball.frictionY = 0.98;
+			ball.drag = 0.98;
+		}else{
+			ball.frictionX = 1;
+			ball.frictionY = 1;
+			ball.drag = 1;
+		}
+	});
+	
+})();
+
+</script>
+</html>

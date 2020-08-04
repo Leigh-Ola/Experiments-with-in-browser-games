@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title></title>
+	<meta name = "viewport" content= "width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1"/>
+	<link type="text/css" rel="stylesheet" href="index.css"/>
+</head>
+<body>
+	
+	<div id="app">
+		<div id="stats" class="notBest" >
+			<div id="text">Current Best</div>
+			<div id="score">0</div>
+		</div>
+		
+		<div id="gameBox">
+		</div>
+	</div>
+
+</body>
+<script src="../../../PlugIns/PrefixFree/fullPrefixFree.js"></script>
+<script type="text/javascript" src="../../../PlugIns/Pixi/pixi.js"></script>
+<script type="text/javascript" src="../../../PlugIns/Lazy/lazy.min.js"></script>
+<script type="text/javascript" src="../../../PlugIns/JQuery/jquery3.2.1.min.js"></script>
+<script type="text/javascript" src="../PixiDetector.js"></script>
+<script type="text/javascript">
+
+$(function init(){
+
+	var game = {
+		ball : undefined, paused : false,
+		state : function(){}
+	};
+	
+	
+	(function(){
+		var score = 0, highscore = 0;
+		Object.defineProperty(game, "score",{
+		configurable : false,
+		set : function(s){
+			document.getElementById("stats").classList.remove("changing");
+			var s = (isNaN(s))? score+1 : s;
+			score = s;
+			var tempScore = score;
+			if(s > highscore){
+				highscore = score;
+			}else{
+				$("#stats").addClass("notBest");
+			}
+			if(game.paused){
+				tempScore = highscore;
+				document.getElementById("stats").classList.add("changing");
+				$("#stats").removeClass("notBest");
+			}
+			$("#score").text(tempScore);
+		},
+		get : function(){ return score; }
+		});
+	})();
+	
+	//create game world
+	var app = new PIXI.Application({ 
+		width: window.innerWidth-6,
+		height: window.innerHeight-6,
+		transparent: true,
+		antialias : true
+	});
+	$("#gameBox").prepend(app.view);
+	var appWid = app.renderer.width, appHei = app.renderer.height;
+	game.app = app;
+	var pd = PixiDetector(app);
+	
+
+	PIXI.loader
+		.add(["../img/ball.png"])
+	.load(setup);
+	
+	//aliases
+	var Sprite = PIXI.Sprite;
+	var Resources = PIXI.loader.resources;
+
+	var boundary;
+	
+	function setup(){
+		var ball = new Sprite(Resources["../img/ball.png"].texture);
+
+		ball.height = 50;
+		ball.width = 50;
+		ball.anchor.x = 0.5;
+		ball.anchor.y = 0.5;
+		ball.rotation = 0;
+		ball.revolution = 0;
+		ball.accY = 0;
+		ball.accX = 0;
+		ball.vx = 0;
+		ball.vy = 0;
+		ball.clicked = false;
+		ball.scale.set(0.35, 0.35);
+		ball.position.set(appWid/2, appHei - ball.height/2);
+		app.stage.addChild(ball);
+		
+		game.state = everyFrame;
+		game.ball = ball;
+		
+		watchForClick(ball);
+		boundary = {x : (0 + ball.width/2), y : (0-appHei), width : (appWid + ball.width/2), height : ((appHei + ball.height/2)*2) };
+		
+		function gameLoop(){
+			game.state();
+			app.renderer.render(app.stage);
+			requestAnimationFrame(gameLoop);
+		}
+		gameLoop();
+	}
+	
+	function everyFrame(){
+		var ball = game.ball;
+		ball.vy = ball.accY;
+		ball.vx = ball.accX;
+		
+		var lastAccY = ball.accY;
+		
+		if(ball.clicked){//gravity
+			ball.accY += 0.7;
+		}
+		
+		var collision = pd(ball).contain(ball, boundary);
+		if(collision){
+			if(collision.has("bottom")){
+				endGame();
+			}
+			if(collision.has("left") || collision.has("right")){
+				ball.vx = -ball.vx;
+				ball.accX = -ball.accX;
+			}
+		}
+		
+		//friction
+		ball.accX *= 0.98;
+		ball.accY *= 0.98;
+		
+		if(ball.accY > 0){
+			ball.accY += 0.3;
+		}
+		
+		
+		if(ball.clicked){//rotation
+			ball.rotation += ball.revolution;
+		}
+		
+		ball.x += ball.vx;
+		ball.y += ball.vy; 
+	}
+	
+	function watchForClick(sprite){
+		pd(sprite).on("click", function(e){
+			var ball = game.ball;
+			var xDegree = ((e.x - sprite.x)/sprite.width);
+			sprite.accY = -15;
+			sprite.accX = (42* -xDegree);
+			ball.revolution = (xDegree/2.5);
+			sprite.clicked = true;
+			game.paused = false;
+			game.score+=1;
+		});
+	}
+	
+	function endGame(){
+		game.state = function(){};
+		game.paused = true;
+		game.score = game.score;
+		pd().one("click", function(){
+			startGame();
+		}, true);
+	}
+	
+	function startGame(){
+		game.score = 0;
+		game.ball.clicked = false;
+		game.ball.accX = 0;
+		game.ball.accY = 0;
+		game.ball.position.set(appWid/2, appHei - game.ball.height/2);
+		game.state = everyFrame;
+	}
+})
+</script>
+</html>

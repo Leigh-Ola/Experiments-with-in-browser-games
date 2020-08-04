@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Run Test</title>
+	<style type="text/css">
+	body{ background:#c0c0c0; margin:2px;}
+
+	.canvasBox{
+		border:2px solid red;
+	}
+	</style>
+</head>
+<body>
+	
+	<!--p class="one"></p>
+	<p class="two"></p-->
+
+</body>
+<script type="text/javascript" src="../../PlugIns/PrefixFree/fullPrefixFree.js"></script>
+<script type="text/javascript" src="../../PlugIns/Lazy/lazy.min.js"></script>
+<script type="text/javascript" src="../../PlugIns/Pixi/pixi.js"></script>
+<script type="text/javascript">
+
+console.log(Object.keys(window));
+
+var game = (function(){
+	var anim;// stores the current value of requestAnimationFrame
+	
+	var exposed_constructor = function(){
+		this.state = function(){}// must be a function. The function will be executed at every animation frame (usually 60 fps).
+	}
+	
+	exposed_constructor.prototype = {
+		begin: function(renderer, stage){
+			var self = this;
+			cancelAnimationFrame(anim);
+			
+			function renderFunc(){
+				self.state();
+				renderer.render(stage);
+				anim = requestAnimationFrame(renderFunc);
+			}
+			renderFunc();
+		},// when called, will trigger the periodic execution of game.state. Requires two arguments.
+		
+		clearState : function(){
+			this.state = function(){};
+		}// resets game.state to an empty function
+	}
+	
+	return (new exposed_constructor());
+})();
+
+
+(function(){
+	//Create the renderer
+	var renderer = PIXI.autoDetectRenderer(312, 444, { transparent: true} );
+	//Add the canvas to the HTML document
+	document.body.appendChild(renderer.view);
+	renderer.view.classList.add("canvasBox");
+	renderer.backgroundColor = "0xFF0000";
+	//Create a container object called the `stage`
+	var stage = new PIXI.Container();
+	//Tell the `renderer` to `render` the `stage`
+	renderer.render(stage);
+	
+	
+	//Use Pixi’s built-in `loader` object to load an image 
+	PIXI.loader 
+		.add("img/one.png")
+		.load(setup);
+	//This `setup` function will run when the image has loaded 
+	function setup() { 
+		//Create the sprite from the texture
+		var img = new PIXI.Sprite(PIXI.loader.resources["img/one.png"].texture);
+		
+		img.width = 312;//canvas width
+		img.height = 444;//canvas height
+		img.position.set(156, 222);
+		img.scale.set(0.5, 0.5);
+		
+		img.anchor.x = 0.5;//x anchor
+		img.anchor.y = 0.5;//y anchor
+		img.rotation = 1.57;//rotation value, where 1 represents the length of the radius. 3.14 represents 180 degrees
+		
+		//Add the sprite to the stage
+		stage.addChild(img);
+		//Render the stage at intervals
+		game.begin(renderer, stage);
+		
+		move(stage.children[0], [
+			{axis:"x", dimension:"width"}, {axis:"y", dimension:"height"}
+		]);// Triggers animation of img's position
+		
+	}
+		
+	function move(el, posArr){
+		function randChoice(arr){
+			return arr[Math.floor(Math.random() *arr.length)];
+		}
+		var speeds = [1, 2];
+		var dirArr = [], self = this;
+		posArr = (String(posArr.constructor).indexOf("rray") > 0)? posArr : [posArr];
+		for(var pos in posArr){
+			dirArr.push(randChoice([0, 1]));
+		}
+		
+		game.state = function(){
+			for(var pos in posArr){
+				loop(posArr[pos], pos);
+			}
+		}
+		
+		function loop(pos, index){
+			var dir = dirArr[index];
+			if(el[pos.axis] > renderer[pos.dimension]){
+				el[pos.axis] -= 3;
+			}else if(el[pos.axis] < 0){
+				el[pos.axis] += 3;
+			}else{
+				if(Math.random() < 0.05){
+					dir = (dir == 1)? 0 : 1;
+				}
+				var speed = randChoice(speeds);
+				el[pos.axis] += ((dir == 1)? speed : 0-speed);
+				dirArr[index] = dir;
+			}
+		}
+	}
+	
+})();
+
+</script>
+</html>
